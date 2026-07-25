@@ -151,24 +151,77 @@ class ServicioCitasImplTest {
 	@Test
 	@DisplayName("Agendar sobre una cita ya programada se rechaza con HorarioOcupadoException")
 	void agendarConSuperposicion() {
-		// Arrange
-		// TODO
+		LocalDateTime relojAmbar = LocalDateTime.of(2026, 9, 12, 8, 0);
+		LocalDateTime inicioExistente = LocalDateTime.of(2026, 9, 13, 10, 0);
+		Mecanico mecanico = new Mecanico(2L, "Diego Cabrera", TipoServicio.MANTENIMIENTO_LIGERO);
 
-		// Act y Assert
-		// TODO
+		Cita citaExistente = new Cita();
+		citaExistente.setMecanico(mecanico);
+		citaExistente.setFechaHoraInicio(inicioExistente);
+		citaExistente.setDuracionHoras(TipoServicio.MANTENIMIENTO_LIGERO.getDuracionHoras());
+		citaExistente.setEstado(EstadoCita.PROGRAMADA);
+
+		LocalDateTime nuevaInicio = LocalDateTime.of(2026, 9, 13, 11, 0);
+
+		when(repositorioMecanicos.findById(2L)).thenReturn(Optional.of(mecanico));
+		when(proveedorFechaHora.ahora()).thenReturn(relojAmbar);
+		when(repositorioCitas.findByMecanicoIdAndEstado(2L, EstadoCita.PROGRAMADA))
+				.thenReturn(List.of(citaExistente));
+
+		assertThrows(HorarioOcupadoException.class, () ->
+				servicioCitas.agendarCita(2L, "CAB-003", TipoServicio.MANTENIMIENTO_LIGERO, nuevaInicio));
 	}
 
 	@Test
 	@DisplayName("Una cita que empieza justo cuando termina otra se acepta")
 	void agendarCitaContigua() {
-		// Arrange
-		// TODO: una cita existente que termina a las 10:00 y la nueva que empieza a las 10:00
+		LocalDateTime relojAmbar = LocalDateTime.of(2026, 9, 12, 8, 0);
+		LocalDateTime inicioExistente = LocalDateTime.of(2026, 9, 13, 10, 0);
+		Mecanico mecanico = new Mecanico(2L, "Diego Cabrera", TipoServicio.MANTENIMIENTO_LIGERO);
 
-		// Act
-		// TODO
+		Cita citaExistente = new Cita();
+		citaExistente.setMecanico(mecanico);
+		citaExistente.setFechaHoraInicio(inicioExistente);
+		citaExistente.setDuracionHoras(TipoServicio.MANTENIMIENTO_LIGERO.getDuracionHoras());
+		citaExistente.setEstado(EstadoCita.PROGRAMADA);
 
-		// Assert
-		// TODO
+		LocalDateTime nuevaInicio = LocalDateTime.of(2026, 9, 13, 12, 0);
+
+		when(repositorioMecanicos.findById(2L)).thenReturn(Optional.of(mecanico));
+		when(proveedorFechaHora.ahora()).thenReturn(relojAmbar);
+		when(repositorioCitas.findByMecanicoIdAndEstado(2L, EstadoCita.PROGRAMADA))
+				.thenReturn(List.of(citaExistente));
+		when(repositorioCitas.save(any(Cita.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Cita resultado = servicioCitas.agendarCita(2L, "CAB-003", TipoServicio.MANTENIMIENTO_LIGERO, nuevaInicio);
+
+		assertEquals(EstadoCita.PROGRAMADA, resultado.getEstado());
+	}
+
+	@Test
+	@DisplayName("Una cita agendada el dia siguiente no se superpone y se acepta")
+	void agendarCitaDiaSiguienteSinSuperposicion() {
+		LocalDateTime relojAmbar = LocalDateTime.of(2026, 9, 12, 8, 0);
+		LocalDateTime inicioExistente = LocalDateTime.of(2026, 9, 13, 10, 0);
+		Mecanico mecanico = new Mecanico(2L, "Diego Cabrera", TipoServicio.MANTENIMIENTO_LIGERO);
+
+		Cita citaExistente = new Cita();
+		citaExistente.setMecanico(mecanico);
+		citaExistente.setFechaHoraInicio(inicioExistente);
+		citaExistente.setDuracionHoras(TipoServicio.MANTENIMIENTO_LIGERO.getDuracionHoras());
+		citaExistente.setEstado(EstadoCita.PROGRAMADA);
+
+		LocalDateTime nuevaInicio = LocalDateTime.of(2026, 9, 14, 11, 0);
+
+		when(repositorioMecanicos.findById(2L)).thenReturn(Optional.of(mecanico));
+		when(proveedorFechaHora.ahora()).thenReturn(relojAmbar);
+		when(repositorioCitas.findByMecanicoIdAndEstado(2L, EstadoCita.PROGRAMADA))
+				.thenReturn(List.of(citaExistente));
+		when(repositorioCitas.save(any(Cita.class))).thenAnswer(inv -> inv.getArgument(0));
+
+		Cita resultado = servicioCitas.agendarCita(2L, "CAB-003", TipoServicio.MANTENIMIENTO_LIGERO, nuevaInicio);
+
+		assertEquals(EstadoCita.PROGRAMADA, resultado.getEstado());
 	}
 
 	@Test
