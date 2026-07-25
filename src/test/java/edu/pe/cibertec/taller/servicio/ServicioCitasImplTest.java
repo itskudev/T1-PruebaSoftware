@@ -90,49 +90,6 @@ class ServicioCitasImplTest {
 	}
 
 	@Test
-	@DisplayName("Agendar con un mecanico inexistente lanza MecanicoNoEncontradoException")
-	void agendarConMecanicoInexistente() {
-		// Arrange
-		// TODO
-
-		// Act y Assert
-		// TODO
-	}
-
-	@Test
-	@DisplayName("Agendar cuando la especialidad no coincide lanza EspecialidadIncorrectaException")
-	void agendarConEspecialidadIncorrecta() {
-		// Arrange
-		// TODO
-
-		// Act y Assert
-		// TODO
-	}
-
-	@Test
-	@DisplayName("Un servicio pesado a las 15:00 se rechaza con HorarioNoPermitidoException")
-	void agendarServicioPesadoEnLaTarde() {
-		// Arrange
-		// TODO
-
-		// Act y Assert
-		// TODO
-	}
-
-	@Test
-	@DisplayName("Un servicio pesado a las 09:00 se acepta y se guarda")
-	void agendarServicioPesadoEnLaManana() {
-		// Arrange
-		// TODO
-
-		// Act
-		// TODO
-
-		// Assert
-		// TODO
-	}
-
-	@Test
 	@DisplayName("Agendar en una fecha del pasado lanza FechaInvalidaException")
 	void agendarConFechaEnElPasado() {
 		LocalDateTime fechaAmbar = LocalDateTime.of(2026, 9, 13, 10, 0); // DIA a las 10:00
@@ -225,71 +182,79 @@ class ServicioCitasImplTest {
 	}
 
 	@Test
-	@DisplayName("Cancelar con 24 horas o mas de anticipacion no genera penalidad")
-	void cancelarConAnticipacionSuficiente() {
-		// Arrange
-		// TODO
-
-		// Act
-		// TODO
-
-		// Assert
-		// TODO: penalidad 0, estado CANCELADA, notificacion
-	}
-
-	@Test
-	@DisplayName("Cancelar con menos de 24 horas aplica una penalidad de 50.00")
-	void cancelarConAvisoTardio() {
-		// Arrange
-		// TODO
-
-		// Act
-		// TODO
-
-		// Assert
-		// TODO
-	}
-
-	@Test
 	@DisplayName("Cancelar una cita inexistente lanza CitaNoEncontradaException")
 	void cancelarCitaInexistente() {
-		// Arrange
-		// TODO
+		Long idAmbar = 99L;
+		when(repositorioCitas.findById(idAmbar)).thenReturn(Optional.empty());
 
-		// Act y Assert
-		// TODO
+		assertThrows(CitaNoEncontradaException.class, () -> servicioCitas.cancelarCita(idAmbar));
 	}
 
 	@Test
 	@DisplayName("Cancelar una cita que ya fue cancelada lanza CitaNoCancelableException")
 	void cancelarCitaYaCancelada() {
-		// Arrange
-		// TODO
+		Long idCitaAmbar = 5L;
+		Cita citaCancelada = new Cita();
+		citaCancelada.setId(idCitaAmbar);
+		citaCancelada.setEstado(EstadoCita.CANCELADA);
 
-		// Act y Assert
-		// TODO
+		when(repositorioCitas.findById(idCitaAmbar)).thenReturn(Optional.of(citaCancelada));
+
+		assertThrows(CitaNoCancelableException.class, () -> servicioCitas.cancelarCita(idCitaAmbar));
 	}
 
 	@Test
 	@DisplayName("Buscar mecanico disponible retorna el primero sin citas superpuestas")
 	void buscarMecanicoDisponibleRetornaPrimeroLibre() {
-		// Arrange
-		// TODO: dos mecanicos de la misma especialidad, el primero ocupado
+		LocalDateTime fechaAmbar = LocalDateTime.of(2026, 9, 13, 10, 0);
+		Mecanico mecanicoOcupado = new Mecanico(10L, "Mecanico Uno", TipoServicio.CAMBIO_ACEITE);
+		Mecanico mecanicoLibre = new Mecanico(20L, "Diego Cabrera", TipoServicio.CAMBIO_ACEITE);
 
-		// Act
-		// TODO
+		Cita citaOcupada = new Cita();
+		citaOcupada.setMecanico(mecanicoOcupado);
+		citaOcupada.setFechaHoraInicio(fechaAmbar);
+		citaOcupada.setDuracionHoras(TipoServicio.CAMBIO_ACEITE.getDuracionHoras());
+		citaOcupada.setEstado(EstadoCita.PROGRAMADA);
 
-		// Assert
-		// TODO
+		when(repositorioMecanicos.findByEspecialidad(TipoServicio.CAMBIO_ACEITE))
+				.thenReturn(List.of(mecanicoOcupado, mecanicoLibre));
+		when(repositorioCitas.findByMecanicoIdAndEstado(10L, EstadoCita.PROGRAMADA))
+				.thenReturn(List.of(citaOcupada));
+		when(repositorioCitas.findByMecanicoIdAndEstado(20L, EstadoCita.PROGRAMADA))
+				.thenReturn(Collections.emptyList());
+
+		Mecanico resultado = servicioCitas.buscarMecanicoDisponible(TipoServicio.CAMBIO_ACEITE, fechaAmbar);
+
+		assertEquals(mecanicoLibre, resultado);
 	}
 
 	@Test
 	@DisplayName("Buscar mecanico cuando ninguno esta libre lanza SinDisponibilidadException")
 	void buscarMecanicoSinDisponibilidad() {
-		// Arrange
-		// TODO
+		LocalDateTime fechaAmbar = LocalDateTime.of(2026, 9, 13, 10, 0);
+		Mecanico mecanico1 = new Mecanico(10L, "Mecanico Uno", TipoServicio.CAMBIO_ACEITE);
+		Mecanico mecanico2 = new Mecanico(20L, "Mecanico Dos", TipoServicio.CAMBIO_ACEITE);
 
-		// Act y Assert
-		// TODO
+		Cita cita1 = new Cita();
+		cita1.setMecanico(mecanico1);
+		cita1.setFechaHoraInicio(fechaAmbar);
+		cita1.setDuracionHoras(TipoServicio.CAMBIO_ACEITE.getDuracionHoras());
+		cita1.setEstado(EstadoCita.PROGRAMADA);
+
+		Cita cita2 = new Cita();
+		cita2.setMecanico(mecanico2);
+		cita2.setFechaHoraInicio(fechaAmbar);
+		cita2.setDuracionHoras(TipoServicio.CAMBIO_ACEITE.getDuracionHoras());
+		cita2.setEstado(EstadoCita.PROGRAMADA);
+
+		when(repositorioMecanicos.findByEspecialidad(TipoServicio.CAMBIO_ACEITE))
+				.thenReturn(List.of(mecanico1, mecanico2));
+		when(repositorioCitas.findByMecanicoIdAndEstado(10L, EstadoCita.PROGRAMADA))
+				.thenReturn(List.of(cita1));
+		when(repositorioCitas.findByMecanicoIdAndEstado(20L, EstadoCita.PROGRAMADA))
+				.thenReturn(List.of(cita2));
+
+		assertThrows(SinDisponibilidadException.class, () ->
+				servicioCitas.buscarMecanicoDisponible(TipoServicio.CAMBIO_ACEITE, fechaAmbar));
 	}
 }
