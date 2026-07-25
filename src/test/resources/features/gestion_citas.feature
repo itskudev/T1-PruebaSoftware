@@ -1,15 +1,13 @@
 Feature: Gestion de citas del taller mecanico
 
-  # TODO: escribir aqui los 4 escenarios usando Given / When / Then / And:
-  #
-  # 1. Agendar un cambio de aceite de forma exitosa
-  #    (la cita queda PROGRAMADA y se notifica el agendamiento)
-  #
-  # 2. Rechazar una reparacion de motor en la tarde
-  #    (los servicios pesados solo se atienden entre las 08:00 y las 12:00)
-  #
-  # 3. Cancelar con penalidad por aviso tardio
-  #    (cancelar con menos de 24 horas aplica una penalidad de 50.00)
-  #
-  # 4. Rechazar un agendamiento por horario ocupado
-  #    (el mecanico ya tiene una cita programada que se superpone)
+  Scenario: Intento de reparacion de transmision fuera de horario permitido
+    Given un mecanico de especialidad REPARACION_TRANSMISION disponible
+    And la fecha y hora actual simulada es un dia antes del DIA a las 08:00
+    When se intenta registrar una cita de REPARACION_TRANSMISION para el DIA a las 16:00
+    Then el servicio rechaza el registro con HorarioNoPermitidoException
+
+  Scenario: Cancelacion anticipada de una cita programada dentro de 3 dias
+    Given una cita programada para dentro de 3 dias
+    When se cancela la cita hoy
+    Then la penalidad es 0.0
+    And el estado final de la cita es CANCELADA
